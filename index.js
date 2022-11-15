@@ -1,51 +1,55 @@
-const express = require('express');
+const express = require("express");
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
-require('dotenv').config();
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
+const { MongoClient, ServerApiVersion } = require('mongodb');
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.send("Vromon Server is running")
+//4QXgCUS5PQYU2fu8
+app.get('/', (res, req) => {
+    req.send(`${port} Food forest server is running`)
+})
+
+app.listen(port, () => {
+    console.log(`Server now is runnig ${port}`);
 })
 
 
-
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.risshmy.mongodb.net/?retryWrites=true&w=majority`;
-console.log(uri);
+const uri = "mongodb+srv://foods:4QXgCUS5PQYU2fu8@cluster0.risshmy.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
 async function run(){
-    try{
-        const serviceCollection = client.db('vromon').collection('service');
+    try {
+        await client.connect();
+        console.log("mongoDB connected by express js kopi");
 
-        app.get('/service', async (req, res)=>{
-            const page = req.query.page;
-            const size = parseInt(req.query.size);
-            const query = {};
-            const cursor = serviceCollection.find(query);
-            const service = await cursor.skip(page*size).limit(size).toArray();
-            const count = await serviceCollection.estimatedDocumentCount();
-            res.send({service, count}) 
-        });
 
-        app.get('/service/:id', async (req, res)=>{
-            const id = req.params.id;
-            const query = {_id: ObjectId(id)};
-            const service = await serviceCollection.findOne(query);
-            res.send(service)
-        })
-    }
-    finally{
-
+    } 
+    catch (error) {
+        
     }
 }
-run().catch(err =>console.error(err));
 
-app.listen(port, () => {
-    `Vromon server is runnig ${port}`
+run().catch(console.dir);
+
+
+const Foods = client.db('service').collection('foods');
+
+app.get('/foods', async(req, res)=>{
+    try {
+
+        const size = parseInt(req.query.limit)
+ 
+        const cursor = Foods.find().limit(size);
+        const foods = await cursor.toArray();
+        res.send(foods)
+    } catch (error) {
+        console.log(error);
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
 })
