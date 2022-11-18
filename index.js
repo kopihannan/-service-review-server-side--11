@@ -1,13 +1,14 @@
 const express = require("express");
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 app.use(cors());
 app.use(express.json());
 require('dotenv').config();
 
-//4QXgCUS5PQYU2fu8
+
 app.get('/', (res, req) => {
   req.send(`${port} Food forest server is running`)
 })
@@ -19,6 +20,23 @@ app.listen(port, () => {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.risshmy.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+  if (!authHeader) {
+    return res.status(401).send({ message: 'unauthorized access' });
+  }
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: 'Forbidden access' });
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
 
 
 async function run() {
@@ -38,6 +56,18 @@ run().catch(console.dir);
 
 const Foods = client.db('service').collection('foods');
 const Review = client.db('review').collection('user');
+const UserCollection = client.db('email').collection('users');
+
+// jwt token email user
+app.post('/user', (req, res) => {
+  try {
+    const user = req.body;
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' })
+    res.send({ token })
+  } catch (error) {
+    console.log("tokennnn", error);
+  }
+})
 
 app.get('/foods', async (req, res) => {
   try {
@@ -56,6 +86,20 @@ app.get('/foods', async (req, res) => {
   }
 })
 
+app.post('/foods', async (req, res) => {
+  try {
+    const foods = req.body;
+    const result = await Foods.insertOne(foods);
+    res.send(result)
+  } catch (error) {
+    console.log(error);
+  }
+})
+
+//jwt token user email
+
+
+
 app.get('/foods/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -68,17 +112,15 @@ app.get('/foods/:id', async (req, res) => {
   }
 })
 
-app.get('/reviews', async (req, res) => {
+app.get('/reviews', verifyJWT, async (req, res) => {
   try {
     let query = {};
 
-    // if (req.query.email) {
-    //   query = {
-    //     email: req.query.email
-    //   }
-    // }
-
-    console.log(req.query.service);
+    if (req.query.email) {
+      query = {
+        email: req.query.email
+      }
+    }
 
     if (req.query.service) {
       query = {
@@ -94,12 +136,23 @@ app.get('/reviews', async (req, res) => {
   }
 })
 
-app.post('/reviews', async (req, res) => {
+app.post('/reviews', verifyJWT, async (req, res) => {
   try {
     const review = req.body;
     const result = await Review.insertOne(review);
     res.send(result)
   } catch (error) {
     console.log(error);
+  }
+})
+
+app.delete('/reviews/:id', verifyJWT, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await Review.deleteOne(query);
+    res.send(result)
+  } catch (error) {
+
   }
 })
