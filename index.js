@@ -23,7 +23,6 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ message: 'unauthorized access' });
   }
@@ -42,7 +41,7 @@ function verifyJWT(req, res, next) {
 async function run() {
   try {
     await client.connect();
-    console.log("mongoDB connected by express js kopi");
+    console.log("mongoDB connected by express js ");
 
 
   }
