@@ -40,7 +40,31 @@ run().catch(console.dir);
 
 const Foods = client.db('service').collection('foods');
 const Review = client.db('review').collection('user');
-const UserCollection = client.db('review').collection('email');
+const UserCollection = client.db('jwtemail').collection('jwt');
+
+// jwt token email user
+app.put('/user/:email', async (req, res) => {
+  try {
+    const email = req.params.email
+    const user = req.body
+    const filter = { email: email }
+    const options = { upsert: true }
+    const updateDoc = {
+      $set: user,
+    }
+    const result = await UserCollection.updateOne(filter, updateDoc, options)
+    console.log(result)
+
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: '1d',
+    })
+    console.log(token)
+    res.send({ result, token })
+
+  } catch (error) {
+    console.log(error);
+  }
+})
 
 
 
@@ -83,29 +107,6 @@ app.get('/foods/:id', async (req, res) => {
     res.send(food)
   }
   catch (error) {
-    console.log(error);
-  }
-})
-
-app.put('/reviews/:email', async (req, res) => {
-  try {
-    const email = req.params.email
-    const user = req.body
-    const filter = { email: email }
-    const options = { upsert: true }
-    const updateDoc = {
-      $set: user,
-    }
-    const result = await UserCollection.updateOne(filter, updateDoc, options)
-    console.log(result)
-
-    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: '1d',
-    })
-    console.log(token)
-    res.send({ result, token })
-
-  } catch (error) {
     console.log(error);
   }
 })
